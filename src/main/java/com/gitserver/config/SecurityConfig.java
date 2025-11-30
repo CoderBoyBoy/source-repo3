@@ -40,7 +40,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable)
+            // CSRF protection is disabled because:
+            // 1. This is a stateless REST API using HTTP Basic Authentication
+            // 2. No session cookies are used (SessionCreationPolicy.STATELESS)
+            // 3. All state-changing operations require Basic Auth credentials
+            // 4. Git protocol endpoints are inherently stateless
+            .csrf(csrf -> csrf
+                .ignoringRequestMatchers("/api/**", "/git/**", "/h2-console/**"))
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints
@@ -51,8 +57,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/commits/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/contents/**").permitAll()
                 
-                // Git protocol endpoints
-                .requestMatchers("/git/**").permitAll()
+                // Git protocol endpoints (require authentication for push, allow public for fetch)
+                .requestMatchers(HttpMethod.GET, "/git/**").permitAll()
+                .requestMatchers(HttpMethod.POST, "/git/**").authenticated()
                 
                 // Swagger/OpenAPI
                 .requestMatchers("/swagger-ui/**", "/api-docs/**", "/swagger-ui.html").permitAll()

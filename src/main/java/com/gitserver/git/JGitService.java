@@ -44,7 +44,7 @@ public class JGitService {
         try {
             Files.createDirectories(repoPath);
             
-            // Initialize bare repository
+            // Initialize non-bare repository (with working directory)
             try (Git git = Git.init()
                     .setDirectory(repoPath.toFile())
                     .setBare(false)

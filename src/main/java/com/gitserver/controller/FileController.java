@@ -1,6 +1,7 @@
 package com.gitserver.controller;
 
 import com.gitserver.dto.*;
+import com.gitserver.exception.FileNotFoundException;
 import com.gitserver.service.FileService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -45,7 +46,7 @@ public class FileController {
         try {
             FileContent content = fileService.getFileContent(owner, repo, branch, path);
             return ResponseEntity.ok(content);
-        } catch (Exception e) {
+        } catch (FileNotFoundException e) {
             // If not a file, try as directory
             List<FileInfo> files = fileService.getFiles(owner, repo, branch, path);
             return ResponseEntity.ok(files);

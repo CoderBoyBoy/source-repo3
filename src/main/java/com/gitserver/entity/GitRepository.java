@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
  * Entity representing a Git repository.
  */
 @Entity
-@Table(name = "repositories")
+@Table(name = "repositories", 
+       uniqueConstraints = @UniqueConstraint(columnNames = {"owner", "name"}))
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -22,7 +23,7 @@ public class GitRepository {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(nullable = false)
     private String name;
 
     @Column(length = 1000)

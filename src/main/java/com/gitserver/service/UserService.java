@@ -2,6 +2,8 @@ package com.gitserver.service;
 
 import com.gitserver.dto.*;
 import com.gitserver.entity.User;
+import com.gitserver.exception.UserAlreadyExistsException;
+import com.gitserver.exception.UserNotFoundException;
 import com.gitserver.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -32,10 +34,10 @@ public class UserService {
     @Transactional
     public UserResponse createUser(CreateUserRequest request) {
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists: " + request.getUsername());
+            throw UserAlreadyExistsException.forUsername(request.getUsername());
         }
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email already exists: " + request.getEmail());
+            throw UserAlreadyExistsException.forEmail(request.getEmail());
         }
 
         Set<String> roles = new HashSet<>();
@@ -86,7 +88,7 @@ public class UserService {
     @Transactional
     public UserResponse updateUser(String username, UpdateUserRequest request) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
 
         if (request.getDisplayName() != null) {
             user.setDisplayName(request.getDisplayName());
@@ -110,7 +112,7 @@ public class UserService {
     @Transactional
     public void deleteUser(String username) {
         User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new RuntimeException("User not found: " + username));
+                .orElseThrow(() -> new UserNotFoundException("User not found: " + username));
         userRepository.delete(user);
         log.info("Deleted user: {}", username);
     }
