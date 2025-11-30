@@ -19,6 +19,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -31,6 +32,12 @@ public class SshKeyService {
 
     private final SshKeyRepository sshKeyRepository;
     private final UserRepository userRepository;
+
+    /**
+     * Supported SSH key type prefixes and exact key types.
+     */
+    private static final Set<String> VALID_KEY_TYPE_PREFIXES = Set.of("ssh-", "ecdsa-");
+    private static final Set<String> VALID_EXACT_KEY_TYPES = Set.of("sk-ssh-ed25519@openssh.com", "sk-ecdsa-sha2-nistp256@openssh.com");
 
     /**
      * Add an SSH key for a user.
@@ -135,8 +142,10 @@ public class SshKeyService {
         String keyType = parts[0];
         String keyData = parts[1];
 
-        // Validate key type
-        if (!keyType.startsWith("ssh-") && !keyType.startsWith("ecdsa-") && !keyType.equals("sk-ssh-ed25519@openssh.com")) {
+        // Validate key type using constants
+        boolean isValidType = VALID_EXACT_KEY_TYPES.contains(keyType) ||
+                              VALID_KEY_TYPE_PREFIXES.stream().anyMatch(keyType::startsWith);
+        if (!isValidType) {
             throw new InvalidSshKeyException("Unsupported SSH key type: " + keyType);
         }
 
