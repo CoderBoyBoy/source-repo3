@@ -56,6 +56,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/branches/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/commits/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/contents/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/issues/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/pulls/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/repos/{owner}/{name}/insights").permitAll()
                 
                 // Git protocol endpoints (require authentication for push, allow public for fetch)
                 .requestMatchers(HttpMethod.GET, "/git/**").permitAll()

@@ -19,6 +19,36 @@ A GitHub-like backend service based on SpringBoot and JGit, providing comprehens
 - **User Registration**: Create new user accounts
 - **Authentication**: HTTP Basic Authentication
 - **User Profiles**: Manage user profiles and settings
+- **SSH Key Management**: Add, list, and delete SSH keys for secure Git operations
+
+### Issue Management
+- **Create Issues**: Open new issues for bug reports or feature requests
+- **Update Issues**: Modify issue title, description, labels, and assignees
+- **Close/Reopen Issues**: Manage issue lifecycle
+- **Filter Issues**: Filter issues by state (open/closed)
+
+### Pull Request Management
+- **Create Pull Requests**: Open PRs to propose changes between branches
+- **Update Pull Requests**: Modify PR title, description, labels, and reviewers
+- **Merge Pull Requests**: Merge changes into the base branch
+- **View Diff**: Get the diff between head and base branches
+
+### Code Review
+- **Submit Reviews**: Approve, request changes, or comment on pull requests
+- **Review Comments**: Add inline comments on specific lines of code
+- **Dismiss Reviews**: Dismiss reviews when changes are made
+
+### Repository Permissions
+- **Collaborators**: Add, update, and remove collaborators from repositories
+- **Permission Levels**: READ, WRITE, and ADMIN permission levels
+- **Access Control**: Fine-grained access control for repository operations
+
+### Repository Insights
+- **Commit Statistics**: Total commits, commits in last week/month
+- **Branch Statistics**: Total branches, default branch
+- **Issue Statistics**: Open and closed issue counts
+- **Pull Request Statistics**: Open, closed, and merged PR counts
+- **Contributor Statistics**: Total unique contributors
 
 ### API Features
 - **RESTful API**: Complete REST API for all operations
@@ -50,22 +80,46 @@ src/main/java/com/gitserver/
 │   ├── BranchController.java          # Branch API
 │   ├── CommitController.java          # Commit API
 │   ├── FileController.java            # File API
-│   └── UserController.java            # User API
+│   ├── UserController.java            # User API
+│   ├── IssueController.java           # Issue API
+│   ├── PullRequestController.java     # Pull Request API
+│   ├── ReviewController.java          # Code Review API
+│   ├── SshKeyController.java          # SSH Key API
+│   ├── PermissionController.java      # Repository Permission API
+│   └── InsightsController.java        # Repository Insights API
 ├── service/                           # Business logic
 │   ├── RepositoryService.java         # Repository operations
 │   ├── BranchService.java             # Branch operations
 │   ├── CommitService.java             # Commit operations
 │   ├── FileService.java               # File operations
-│   └── UserService.java               # User operations
+│   ├── UserService.java               # User operations
+│   ├── IssueService.java              # Issue operations
+│   ├── PullRequestService.java        # Pull Request operations
+│   ├── ReviewService.java             # Code Review operations
+│   ├── SshKeyService.java             # SSH Key operations
+│   ├── PermissionService.java         # Permission operations
+│   └── InsightsService.java           # Repository Insights
 ├── git/                               # JGit integration
 │   ├── JGitService.java               # JGit operations
 │   └── GitHttpServerConfig.java       # Git HTTP server
 ├── entity/                            # JPA entities
 │   ├── GitRepository.java             # Repository entity
-│   └── User.java                      # User entity
+│   ├── User.java                      # User entity
+│   ├── Issue.java                     # Issue entity
+│   ├── PullRequest.java               # Pull Request entity
+│   ├── Review.java                    # Code Review entity
+│   ├── ReviewComment.java             # Review Comment entity
+│   ├── SshKey.java                    # SSH Key entity
+│   └── RepositoryPermission.java      # Permission entity
 ├── repository/                        # JPA repositories
 │   ├── GitRepositoryJpaRepository.java
-│   └── UserRepository.java
+│   ├── UserRepository.java
+│   ├── IssueRepository.java
+│   ├── PullRequestRepository.java
+│   ├── ReviewRepository.java
+│   ├── ReviewCommentRepository.java
+│   ├── SshKeyRepository.java
+│   └── RepositoryPermissionRepository.java
 ├── dto/                               # Data transfer objects
 │   ├── CreateRepositoryRequest.java
 │   ├── RepositoryResponse.java
@@ -159,6 +213,65 @@ Once the server is running, access the API documentation at:
 | GET | `/api/users/me` | Get current user |
 | PUT | `/api/users/{username}` | Update a user |
 | DELETE | `/api/users/{username}` | Delete a user |
+
+### SSH Key API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/users/ssh-keys` | Add a new SSH key |
+| GET | `/api/users/ssh-keys` | Get all SSH keys for current user |
+| GET | `/api/users/ssh-keys/{keyId}` | Get an SSH key by ID |
+| DELETE | `/api/users/ssh-keys/{keyId}` | Delete an SSH key |
+
+### Issue API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/repos/{owner}/{repo}/issues` | Create a new issue |
+| GET | `/api/repos/{owner}/{repo}/issues` | Get all issues for a repository |
+| GET | `/api/repos/{owner}/{repo}/issues/{issueNumber}` | Get an issue by number |
+| PATCH | `/api/repos/{owner}/{repo}/issues/{issueNumber}` | Update an issue |
+| PUT | `/api/repos/{owner}/{repo}/issues/{issueNumber}/close` | Close an issue |
+| PUT | `/api/repos/{owner}/{repo}/issues/{issueNumber}/reopen` | Reopen an issue |
+
+### Pull Request API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/repos/{owner}/{repo}/pulls` | Create a new pull request |
+| GET | `/api/repos/{owner}/{repo}/pulls` | Get all pull requests |
+| GET | `/api/repos/{owner}/{repo}/pulls/{prNumber}` | Get a pull request |
+| PATCH | `/api/repos/{owner}/{repo}/pulls/{prNumber}` | Update a pull request |
+| PUT | `/api/repos/{owner}/{repo}/pulls/{prNumber}/merge` | Merge a pull request |
+| PUT | `/api/repos/{owner}/{repo}/pulls/{prNumber}/close` | Close a pull request |
+| GET | `/api/repos/{owner}/{repo}/pulls/{prNumber}/diff` | Get PR diff |
+
+### Code Review API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews` | Create a review |
+| GET | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews` | Get all reviews |
+| GET | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews/{reviewId}` | Get a review |
+| PUT | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews/{reviewId}/dismiss` | Dismiss a review |
+| POST | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews/{reviewId}/comments` | Add comment |
+| GET | `/api/repos/{owner}/{repo}/pulls/{prNumber}/reviews/{reviewId}/comments` | Get comments |
+
+### Collaborators API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/repos/{owner}/{repo}/collaborators` | Add a collaborator |
+| GET | `/api/repos/{owner}/{repo}/collaborators` | Get all collaborators |
+| GET | `/api/repos/{owner}/{repo}/collaborators/{username}` | Get a collaborator |
+| PUT | `/api/repos/{owner}/{repo}/collaborators/{username}` | Update permissions |
+| DELETE | `/api/repos/{owner}/{repo}/collaborators/{username}` | Remove collaborator |
+
+### Insights API
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/repos/{owner}/{repo}/insights` | Get repository insights |
 
 ## Git Protocol Support
 
