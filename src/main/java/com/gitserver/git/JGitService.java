@@ -5,11 +5,16 @@ import com.gitserver.exception.*;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.ListBranchCommand;
+import org.eclipse.jgit.api.MergeResult;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.diff.DiffEntry;
+import org.eclipse.jgit.diff.DiffFormatter;
 import org.eclipse.jgit.lib.*;
 import org.eclipse.jgit.revwalk.RevCommit;
 import org.eclipse.jgit.revwalk.RevTree;
 import org.eclipse.jgit.revwalk.RevWalk;
+import org.eclipse.jgit.treewalk.AbstractTreeIterator;
+import org.eclipse.jgit.treewalk.CanonicalTreeParser;
 import org.eclipse.jgit.treewalk.TreeWalk;
 import org.eclipse.jgit.treewalk.filter.PathFilter;
 import org.springframework.beans.factory.annotation.Value;
@@ -612,5 +617,109 @@ public class JGitService {
         }
         
         return true;
+    }
+
+    /**
+     * Merge a source branch into a target branch.
+     */
+    public void mergeBranch(String owner, String name, String sourceBranch, String targetBranch, String mergedBy) {
+        Path repoPath = getRepositoryPath(owner, name);
+        
+        try (Git git = Git.open(repoPath.toFile())) {
+            // Checkout target branch
+            git.checkout().setName(targetBranch).call();
+            
+            // Merge source branch
+            MergeResult result = git.merge()
+                    .include(git.getRepository().resolve("refs/heads/" + sourceBranch))
+                    .setMessage("Merge branch '" + sourceBranch + "' into " + targetBranch)
+                    .setCommit(true)
+                    .call();
+            
+            if (!result.getMergeStatus().isSuccessful()) {
+                throw new GitOperationException("Merge failed: " + result.getMergeStatus());
+            }
+            
+            log.info("Merged branch '{}' into '{}' in repository '{}/{}'", 
+                    sourceBranch, targetBranch, owner, name);
+        } catch (IOException | GitAPIException e) {
+            throw new GitOperationException("Failed to merge branches: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the diff between two branches.
+     */
+    public String getDiff(String owner, String name, String baseBranch, String headBranch) {
+        Path repoPath = getRepositoryPath(owner, name);
+        
+        try (Git git = Git.open(repoPath.toFile())) {
+            Repository repository = git.getRepository();
+            
+            ObjectId baseId = repository.resolve("refs/heads/" + baseBranch);
+            ObjectId headId = repository.resolve("refs/heads/" + headBranch);
+            
+            if (baseId == null) {
+                throw new BranchNotFoundException(name, baseBranch);
+            }
+            if (headId == null) {
+                throw new BranchNotFoundException(name, headBranch);
+            }
+            
+            AbstractTreeIterator oldTreeParser = prepareTreeParser(repository, baseId);
+            AbstractTreeIterator newTreeParser = prepareTreeParser(repository, headId);
+            
+            java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+            try (DiffFormatter formatter = new DiffFormatter(out)) {
+                formatter.setRepository(repository);
+                List<DiffEntry> diffs = formatter.scan(oldTreeParser, newTreeParser);
+                
+                for (DiffEntry diff : diffs) {
+                    formatter.format(diff);
+                }
+            }
+            
+            return out.toString(StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            throw new GitOperationException("Failed to get diff: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Get the repository size in bytes.
+     */
+    public long getRepositorySize(String owner, String name) {
+        Path repoPath = getRepositoryPath(owner, name);
+        
+        try {
+            return Files.walk(repoPath)
+                    .filter(Files::isRegularFile)
+                    .mapToLong(p -> {
+                        try {
+                            return Files.size(p);
+                        } catch (IOException e) {
+                            return 0L;
+                        }
+                    })
+                    .sum();
+        } catch (IOException e) {
+            log.warn("Failed to calculate repository size: {}", e.getMessage());
+            return 0L;
+        }
+    }
+
+    private AbstractTreeIterator prepareTreeParser(Repository repository, ObjectId objectId) throws IOException {
+        try (RevWalk walk = new RevWalk(repository)) {
+            RevCommit commit = walk.parseCommit(objectId);
+            RevTree tree = commit.getTree();
+            
+            CanonicalTreeParser treeParser = new CanonicalTreeParser();
+            try (ObjectReader reader = repository.newObjectReader()) {
+                treeParser.reset(reader, tree.getId());
+            }
+            
+            walk.dispose();
+            return treeParser;
+        }
     }
 }
